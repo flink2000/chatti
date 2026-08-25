@@ -1,0 +1,541 @@
+/* White, quiet, one column. The only saturated thing on the page is the face —
+ * everything else is text and hairlines, so the eyes stay the focal point.
+ *
+ * The accent is the firmware eye colour (#2FE3FF, chatti_face_display.cc:22)
+ * darkened until it holds up on white; on the device it glows on black, here it
+ * would wash out.
+ */
+
+:root {
+  --bg: #ffffff;
+  --ink: #1a1d21;
+  --ink-soft: #6b7480;
+  --ink-faint: #9aa4b0;
+  --line: #e8ebee;
+  --accent: #12b5d4;
+  --screen: #0a0c0e;   /* the device screen: black, like the real one */
+  --eye: #ffffff;
+  --ok: #2f9e5f;
+  --warn: #c98a1b;
+  --off: #b9c0c9;
+  --err: #c9503f;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.55 "Segoe UI", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 48px 24px 64px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* --- face ---------------------------------------------------------------- */
+
+.face-block { text-align: center; }
+
+/* The stage is the device screen, so it is black — the rest of the page stays
+ * white. Eyes in white rather than the firmware's #2FE3FF, by request. */
+.stage {
+  position: relative;
+  width: 284px;
+  height: 240px;
+  margin: 0 auto;
+  border-radius: 28px;
+  background: var(--screen);
+  overflow: hidden;
+}
+
+.eye {
+  position: absolute;
+  top: 120px;
+  background: var(--eye);
+  border-radius: 24px;
+  transition-property: width, height, transform;
+  transition-timing-function: ease-in-out;   /* LVGL lv_anim_path_ease_in_out */
+  transition-duration: 260ms;
+  will-change: width, height, transform;
+}
+
+.eye-left  { left: 88px; }
+.eye-right { left: 196px; }
+
+/* Bottom of the stage — the slot where the device shows its own status line
+ * (chatti_face_display.cc, state label at BOTTOM_MID). */
+/* Below the screen, on white — the screen itself stays pure face. */
+.device-line {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 15px;
+  color: var(--ink-soft);
+  transition: color 200ms;
+}
+
+/* The dot rules below are written for the flex rows of the service list; inside
+   this centred paragraph it needs to be laid out inline and lifted to sit on
+   the text's optical middle rather than its baseline. */
+.device-line .dot {
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: 1px;
+}
+
+.device-line.connected { color: var(--ink); font-weight: 500; }
+.device-line.busy { color: var(--warn); }
+.device-line.off { color: var(--ink-faint); }
+
+/* The explanation the status line has no room for. */
+.device-note {
+  margin: 8px auto 0;
+  max-width: 380px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  min-height: 20px;
+}
+
+.device-note.warn { color: var(--err); }
+
+.fix-address {
+  margin-top: 10px;
+  border-color: var(--err);
+  color: var(--err);
+}
+.fix-address:hover:not(:disabled) { border-color: var(--err); color: var(--err); }
+
+.face-block { margin-bottom: 40px; }
+
+/* --- panels -------------------------------------------------------------- */
+
+.panel {
+  border-top: 1px solid var(--line);
+  padding: 22px 0 26px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  min-height: 30px;
+}
+
+/* --- services ------------------------------------------------------------ */
+
+.services { list-style: none; margin: 0; padding: 0; }
+
+.services li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 5px 0;
+}
+
+.services b { font-weight: 500; min-width: 118px; }
+
+/* The detail takes the slack so every row's button lines up on the right. */
+.services .detail { flex: 1; }
+
+.services .svc-btn {
+  flex: none;
+  align-self: center;
+  padding: 4px 12px;
+  font-size: 13px;
+  min-width: 84px;
+}
+
+.detail {
+  color: var(--ink-faint);
+  font-size: 13.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--off);
+  flex: none;
+  transition: background 200ms;
+}
+
+.dot.ok      { background: var(--ok); }
+.dot.starting{ background: var(--warn); }
+/* Up, but too occupied to answer a health check — amber like "starting", because
+   both mean "wait", not "broken". Without this rule the dot went transparent. */
+.dot.busy    { background: var(--warn); }
+.dot.warn    { background: var(--warn); }
+.dot.off     { background: var(--off); }
+.dot.error   { background: var(--err); }
+.dot.skipped { background: var(--off); }
+
+/* Progress list while the stack comes up. */
+.services li.running b::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  animation: ellipsis 1.2s steps(4) infinite;
+}
+@keyframes ellipsis { to { content: "…"; } }
+
+/* --- fields -------------------------------------------------------------- */
+
+.field {
+  display: block;
+  margin-bottom: 20px;
+}
+
+.label {
+  display: block;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+
+select, textarea, button {
+  font: inherit;
+  color: inherit;
+}
+
+select, textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  outline: none;
+}
+
+select:focus, textarea:focus { border-color: var(--accent); }
+
+textarea { resize: vertical; line-height: 1.5; }
+
+.with-button { display: flex; gap: 8px; }
+.with-button select { flex: 1; min-width: 0; }
+
+.hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.actions .hint { margin-top: 0; flex: 1; min-width: 200px; }
+
+/* --- buttons ------------------------------------------------------------- */
+
+button {
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 150ms, border-color 150ms, opacity 150ms;
+}
+
+button.primary {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  padding: 8px 18px;
+  font-weight: 500;
+}
+button.primary:hover:not(:disabled) { background: #0fa2bf; border-color: #0fa2bf; }
+
+button.ghost {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink-soft);
+  padding: 8px 14px;
+}
+button.ghost:hover:not(:disabled) { border-color: var(--ink-faint); color: var(--ink); }
+
+button:disabled { opacity: .45; cursor: default; }
+
+/* --- conversations ------------------------------------------------------- */
+
+.conversations details {
+  border-bottom: 1px solid var(--line);
+}
+.conversations details:last-child { border-bottom: none; }
+
+.conversations summary {
+  padding: 11px 2px;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+.conversations summary::-webkit-details-marker { display: none; }
+.conversations summary::before {
+  content: "›";
+  color: var(--ink-faint);
+  transition: transform 150ms;
+  display: inline-block;
+}
+.conversations details[open] summary::before { transform: rotate(90deg); }
+
+.conv-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-time { color: var(--ink-faint); font-size: 12.5px; white-space: nowrap; }
+
+.turns { padding: 4px 0 16px 20px; }
+
+.turn { margin: 0 0 10px; }
+.turn .who {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-bottom: 2px;
+}
+.turn.assistant .what { color: var(--ink); }
+.turn.user .what { color: var(--ink-soft); }
+
+.empty { color: var(--ink-faint); margin: 4px 0; }
+
+/* --- misc ---------------------------------------------------------------- */
+
+.foot {
+  margin-top: 40px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .16);
+  z-index: 10;
+}
+.toast.err { background: var(--err); }
+
+@media (prefers-reduced-motion: reduce) {
+  .eye { transition-duration: 1ms !important; }
+}
+
+/* ---------- first-run checklist ---------- */
+
+.checklist { list-style: none; margin: 4px 0 0; padding: 0; }
+
+.checklist li {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+.checklist li:first-child { border-top: none; }
+.checklist b { font-weight: 500; min-width: 172px; }
+
+/* The dot is a plain span here, so the state colour comes from the row. */
+.checklist li.ok   > .dot { background: var(--ok); }
+.checklist li.warn > .dot { background: var(--warn); }
+.checklist li.bad  > .dot { background: var(--err); }
+
+.checklist .detail { flex: 1; white-space: normal; }
+
+/* Hints sit on their own line under the row; the firewall one is a command,
+   so it keeps its line breaks and gets a monospace face. */
+.hint.sub {
+  flex-basis: 100%;
+  margin: 2px 0 0 19px;
+  white-space: pre-wrap;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ---------- flashing ---------- */
+
+.flash-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.progress {
+  height: 6px;
+  margin-top: 12px;
+  border-radius: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+.progress .bar {
+  height: 100%;
+  width: 0;
+  background: var(--ok);
+  transition: width 300ms;
+}
+
+.flash-log {
+  margin: 10px 0 0;
+  padding: 9px 11px;
+  max-height: 132px;
+  overflow: auto;
+  border-radius: 7px;
+  background: var(--line);
+  color: var(--ink-faint);
+  font-size: 11.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+/* Shown when flashing would clear the device settings. */
+.warn-text { color: var(--warn); }
+
+/* ---------- sidebar layout ---------- */
+
+/* The content column keeps the width it always had (560 px, centred); the
+ * sidebar sits beside it rather than eating into it. */
+.layout { display: flex; align-items: flex-start; }
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  flex: none;
+  width: 186px;
+  height: 100vh;
+  padding: 48px 14px 24px;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.brand {
+  margin: 0 0 18px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.tab {
+  appearance: none;
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font: inherit;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.tab:hover { background: var(--line); color: var(--ink); }
+.tab.is-active { background: var(--line); color: var(--ink); font-weight: 500; }
+
+/* Without this the column would collapse to the widest child on narrow
+ * viewports and the 560 px would no longer hold. */
+main { flex: 1; min-width: 0; }
+
+/* Panels separate themselves from the panel above with a hairline. The first
+ * one on a tab has nothing above it, so that line would just hang there. */
+.page > .panel:first-child {
+  margin-top: 0;
+  border-top: none;
+  padding-top: 0;
+}
+
+@media (max-width: 820px) {
+  .layout { display: block; }
+  .sidebar {
+    position: static;
+    width: auto;
+    height: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 16px 20px;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand { display: none; }
+  main { padding-top: 24px; }
+}
+
+/* ---------- short how-to blocks ---------- */
+
+/* Deliberately quiet: the checklist above is what the user acts on, this is
+ * only the running order. Long explanations belong in the repo README. */
+.guide {
+  margin-top: 22px;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  background: #fafbfc;
+  border: 1px solid var(--line);
+}
+
+.guide h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.steps {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+.steps li { margin: 5px 0; }
+.steps b { color: var(--ink); font-weight: 600; }
+
+.guide-note {
+  margin: 12px 0 0;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-faint);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.guide-note code {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  color: var(--ink);
+  word-break: break-all;
+}
+
+/* A button that reads as a link — used for the "show the other ports" escape
+ * hatch, which is a control, not navigation. */
+.linkish {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.linkish:hover { color: var(--ink); }

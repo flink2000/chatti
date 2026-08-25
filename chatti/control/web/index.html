@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chatti</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='19' fill='%230A0C0E'/><rect x='23' y='30' width='22' height='40' rx='10' fill='%23fff'/><rect x='55' y='30' width='22' height='40' rx='10' fill='%23fff'/></svg>">
+</head>
+<body>
+
+<div class="layout">
+
+  <nav class="sidebar" id="sidebar">
+    <p class="brand">Chatti</p>
+    <button class="tab is-active" data-tab="start">Start</button>
+    <button class="tab" data-tab="setup">Setup</button>
+    <button class="tab" data-tab="device">Device</button>
+    <button class="tab" data-tab="settings">Settings</button>
+    <button class="tab" data-tab="conversations">Conversations</button>
+  </nav>
+
+  <main>
+
+    <div class="page" data-page="start">
+      <section class="face-block">
+        <div class="stage" id="stage">
+          <div class="eye eye-left"></div>
+          <div class="eye eye-right"></div>
+        </div>
+        <p class="device-line" id="device-line">
+          <span class="dot" id="device-dot"></span><span id="device-text">Checking the connection…</span>
+        </p>
+        <p class="device-note" id="device-note"></p>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Services</h2>
+          <button id="start-btn" class="primary">Start everything</button>
+        </div>
+        <ul class="services" id="services">
+          <li data-key="docker"><span class="dot"></span><b>Docker</b><span class="detail">…</span><button class="ghost svc-btn"></button></li>
+          <li data-key="lmstudio"><span class="dot"></span><b>LM Studio</b><span class="detail">…</span><button class="ghost svc-btn"></button></li>
+          <li data-key="speaches"><span class="dot"></span><b>Speech</b><span class="detail">…</span><button class="ghost svc-btn"></button></li>
+          <li data-key="xiaozhi"><span class="dot"></span><b>Chatti server</b><span class="detail">…</span><button class="ghost svc-btn"></button></li>
+          <li data-key="model"><span class="dot"></span><b>Language model</b><span class="detail">…</span><button class="ghost svc-btn"></button></li>
+        </ul>
+      </section>
+    </div>
+
+    <div class="page" data-page="setup" hidden>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Setup</h2>
+          <button id="setup-btn" class="ghost">Check</button>
+        </div>
+        <p class="hint" id="setup-summary">Not checked yet.</p>
+        <ul class="checklist" id="checklist"></ul>
+        <p class="hint" id="announce-line"></p>
+
+        <div class="guide">
+          <h3>Getting Chatti onto your Wi-Fi</h3>
+          <ol class="steps">
+            <li>On the Chatti, <b>hold BOOT for 4 seconds</b> — it opens a Wi-Fi network of its own.</li>
+            <li>Connect a phone or PC to the network <b>Chatti Server-…</b>. The display shows the
+              exact name.</li>
+            <li>On a phone the setup page opens <b>by itself</b>. If it does not, open the address
+              the display shows underneath.</li>
+            <li>Pick your own Wi-Fi, enter the password. <b>Leave the address field empty.</b></li>
+            <li>Save. The Chatti restarts and finds the server on its own.</li>
+          </ol>
+          <p class="guide-note">
+            If the display stays on &ldquo;Connecting to &hellip;&rdquo;, the Chatti has joined the
+            Wi-Fi but got no address from the router &mdash; move it closer to the router, or
+            restart the router.<br>
+            If it still has not found the server after a few minutes, enter the address in step 4
+            under &ldquo;Advanced&rdquo;:
+            <code id="manual-ota">http://…:8003/xiaozhi/ota/</code>
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <div class="page" data-page="device" hidden>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Device</h2>
+          <button id="ports-btn" class="ghost" title="Search for ports again">Rescan</button>
+        </div>
+        <label class="field">
+          <span>Port</span>
+          <select id="sel-port"></select>
+          <span class="hint" id="hint-port">The Chatti shows up as an Espressif device.</span>
+        </label>
+        <label class="field">
+          <span>Firmware</span>
+          <select id="sel-firmware"></select>
+          <span class="hint" id="hint-firmware">English is the default; German is one click away.</span>
+        </label>
+        <p class="hint" id="firmware-line">Looking for firmware…</p>
+        <div class="flash-row">
+          <button id="flash-btn" class="primary" disabled>Flash firmware</button>
+          <span class="hint" id="flash-hint">Takes about 40 seconds. Do not unplug.</span>
+        </div>
+        <div class="progress" id="flash-progress" hidden><div class="bar" id="flash-bar"></div></div>
+        <pre class="flash-log" id="flash-log" hidden></pre>
+
+        <div class="guide">
+          <h3>Flashing the firmware</h3>
+          <ol class="steps">
+            <li>Plug the Chatti into the PC with <b>USB-C</b>.</li>
+            <li>Above, pick the port marked <b>&ldquo;Chatti&rdquo;</b> — usually preselected already.</li>
+            <li>Pick the <b>firmware</b>: <b>English</b> is preselected, <b>Deutsch</b> is the German one.</li>
+            <li>Press <b>Flash firmware</b>. About 40 seconds, leave the cable plugged in.</li>
+            <li>The Chatti restarts on its own afterwards.</li>
+            <li>Carry on under <b>Setup</b>: enter the Wi-Fi.</li>
+          </ol>
+          <p class="guide-note">
+            If no port shows up, try another USB-C cable — some of them only charge.
+            If the chip does not answer, hold BOOT, plug the cable back in, release BOOT.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <div class="page" data-page="settings" hidden>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Settings</h2>
+          <button id="reload-catalog" class="ghost" title="Reload the model lists">Reload lists</button>
+        </div>
+
+        <label class="field">
+          <span class="label">Language model</span>
+          <select id="sel-llm"></select>
+          <span class="hint" id="hint-llm">From LM Studio.</span>
+        </label>
+
+        <label class="field">
+          <span class="label">Voice</span>
+          <span class="with-button">
+            <select id="sel-voice"></select>
+            <button id="preview-btn" class="ghost" title="Listen to the voice">Listen</button>
+          </span>
+          <span class="hint">A newly chosen voice is loaded during the first conversation — that one time can take a while.</span>
+        </label>
+
+        <label class="field">
+          <span class="label">Speech recognition</span>
+          <select id="sel-asr"></select>
+          <span class="hint">medium recognises noticeably better, but needs about 20–25 s instead of 13 s.</span>
+        </label>
+
+        <label class="field">
+          <span class="label">Instruction for the model</span>
+          <textarea id="sel-prompt" rows="7" spellcheck="false"></textarea>
+          <span class="hint">Keep it short: every character here is read along with every question.</span>
+        </label>
+
+        <div class="actions">
+          <button id="save-btn" class="primary" disabled>Apply</button>
+          <span class="hint" id="save-hint">The server restarts for this (~15 s). A running conversation is cut off.</span>
+        </div>
+      </section>
+    </div>
+
+    <div class="page" data-page="conversations" hidden>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Conversations</h2>
+          <span class="hint" id="conv-count"></span>
+        </div>
+        <div id="conversations" class="conversations">
+          <p class="empty">Loading…</p>
+        </div>
+      </section>
+    </div>
+
+    <p class="foot">Chatti Control · <span id="foot-detail">reachable on this computer only</span></p>
+  </main>
+
+</div>
+
+<div id="toast" class="toast" hidden></div>
+<audio id="preview-audio" hidden></audio>
+
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>

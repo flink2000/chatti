@@ -1,0 +1,3 @@
+{{ base_prompt }}
+
+Today is {{ today_date }}, {{ today_weekday }}.

@@ -1,0 +1,10 @@
+# These files are bind-mounted into a Linux container (docker-compose.yml), so
+# they must keep LF regardless of the checkout platform. With core.autocrlf=true
+# — the default on Windows — git would hand the container CRLF copies. Python
+# tolerates that, but the files also serve as templates compared against fresh
+# ones pulled with `docker cp`, and a whole-file diff over line endings hides
+# every real change.
+*.py text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.txt text eol=lf

@@ -1,0 +1,3 @@
+# Batch files must keep CRLF. With LF, cmd.exe mis-parses them line by line
+# ("Der Befehl 'M' ist entweder falsch geschrieben...") and the shortcut fails.
+*.cmd text eol=crlf

@@ -1,0 +1,107 @@
+# chatti — local overrides for xiaozhi-server.
+# This file only overrides keys from ../config.yaml; anything not listed here keeps its default.
+#
+# Everything runs on this PC:
+#   LM Studio  : host port 1234  (LLM, google/gemma-4-e4b)
+#   Speaches   : host port 8100  (STT via faster-whisper, TTS via Piper)
+#   this server: host ports 8000 (WebSocket) and 8003 (OTA/HTTP)
+#
+# The server runs inside Docker, so it reaches the two host services through
+# host.docker.internal, not localhost.
+
+server:
+  ip: 0.0.0.0
+  port: 8000
+  http_port: 8003
+  # Address the device is told to connect to. Must be this PC's LAN address,
+  # not localhost — the ESP32 resolves it from the WLAN.
+  websocket: ws://chatti-server.local:8000/xiaozhi/v1/
+  ota: http://chatti-server.local:8003/xiaozhi/ota/
+
+# The stock template (agent-base-prompt.txt) inflates the system prompt to ~6350
+# characters — it injects the full emoji list, weather, location and lunar date.
+# On this hardware the model has to chew through ~1600 tokens before it even
+# starts thinking, which pushed one answer past 60 s. Ours keeps the date and
+# nothing else; the face states come from our own state machine from M3 on.
+prompt_template: data/chatti-prompt.txt
+
+# Keep the recordings under tmp/ so the microphone level can be measured when
+# recognition is poor. Set back to true once the input chain is dialled in.
+delete_audio: false
+
+# Idle hang-up: upstream asks the model to deliver a sentimental Chinese goodbye
+# ("请你以时间过得真快未来头...") when a conversation times out. Off.
+end_prompt:
+  enable: false
+
+selected_module:
+  VAD: SileroVAD
+  ASR: SpeachesASR
+  LLM: LMStudioLLM
+  VLLM: ChatGLMVLLM
+  TTS: SpeachesTTS
+  Memory: nomem
+  # No intent recognition for now: it adds a second LLM round trip before every
+  # answer and would only pay off for music/volume commands we do not use.
+  Intent: nointent
+
+# Replaces the default Chinese persona ("Xiaozhi, girl from Taiwan").
+# Deliberately no character — see decision 7. What remains are output
+# constraints that the speech synthesis and the 240x284 display need.
+prompt: |
+  You are "Chatti", a completely offline, local running llm on my desk, listening to me via a ESP-32 microfone and speaking to me via speakers.
+ASR:
+  SpeachesASR:
+    # Speaches speaks the OpenAI transcription protocol, so the generic
+    # openai provider works without writing any new code.
+    type: openai
+    api_key: none
+    base_url: http://host.docker.internal:8100/v1/audio/transcriptions
+    # medium: small kept mangling German ("dein Buddy" -> "Dan Budi"). Slower on
+    # CPU, which decision 8 explicitly allows. Both models are downloaded, so
+    # switching back is a one-line change plus a restart. Both are multilingual,
+    # so the language below is the only thing that pins the spoken language.
+    model_name: Systran/faster-whisper-small
+    # Requires the patched provider mounted over core/providers/asr/openai.py —
+    # stock xiaozhi ignores this key and lets Whisper guess the language. Kept in
+    # step with settings.SPEECH_LANGUAGE in the control panel.
+    language: en
+    output_dir: tmp/
+
+LLM:
+  LMStudioLLM:
+    type: openai
+    model_name: google/gemma-4-e2b
+    url: http://host.docker.internal:1234/v1
+    api_key: lm-studio
+    # gemma-4-e4b is a reasoning model: it spends ~170 tokens thinking before the
+    # first word of the actual answer appears, and the server only reads
+    # delta.content, never reasoning_content. Without an explicit budget the
+    # thinking eats the whole allowance and content stays empty — the device then
+    # waits forever for an answer that never comes. Measured: 216 tokens / 24 s
+    # for a one-sentence question, well inside the firmware's 120 s channel timeout.
+    max_tokens: 1500
+    temperature: 0.7
+
+TTS:
+  SpeachesTTS:
+    type: openai
+    api_key: none
+    api_url: http://host.docker.internal:8100/v1/audio/speech
+    # "high" is the top tier, and English has exactly six of them: lessac,
+    # ljspeech, libritts and ryan from speaches-ai, cori (en_GB), and glados
+    # from a community set. lessac is the neutral female one and the default
+    # here; ljspeech is the same register but reads more like an audiobook,
+    # cori is British. ryan is male, libritts multi-speaker, glados a character.
+    # Switchable from the control panel (chatti/control) — whatever stands here
+    # is the current choice, not a recommendation. Model and voice belong
+    # together and are always written as a pair.
+    model: speaches-ai/piper-en_US-lessac-high
+    voice: lessac
+    format: wav
+    speed: 1
+    # Requires the patched TTS provider. Without an explicit rate Speaches
+    # mislabels 16 kHz Piper output as 24 kHz — the "low" voices then play 1.5x
+    # too fast and sound squeaky. 24000 matches the device's output rate.
+    sample_rate: 24000
+    output_dir: tmp/

@@ -1,0 +1,47 @@
+tmp/
+components/
+managed_components/
+build/
+dist/
+.vscode/
+.devcontainer/
+sdkconfig.old
+sdkconfig
+dependencies.lock
+.env
+releases/
+main/assets/lang_config.h
+main/mmap_generate_emoji.h
+.DS_Store
+.cache
+*.pyc
+*.bin
+mmap_generate_*.h
+.clangd
+
+# --- chatti ---
+# Build output of our own work is already covered by build/ and sdkconfig above.
+# What follows is only what those do not catch.
+#
+# Deliberately NOT listed: the Waveshare reference demos and the ESP-IDF
+# toolchain. Both live outside the repository, so a rule here could never match
+# them - and `refs/` would additionally have hidden any directory of that name
+# an upstream merge might bring in.
+#
+# Serial and flash logs
+*.log
+# Virtual environment of chatti/control (rebuilt with setup.cmd at any time)
+chatti/control/.venv/
+__pycache__/
+# Backup and temp files the control panel writes next to .config.yaml
+*.yaml.bak
+*.yaml.tmp
+
+# Runtime state of the server: .config.yaml with the local addresses, the
+# conversation transcripts, recordings, the device list. Created by
+# docker-compose next to it (CHATTI_DATA) and NEVER published - the transcripts
+# are recordings of real conversations.
+chatti/server/data/
+
+# Blender auto-backups
+*.blend1

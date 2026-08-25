@@ -1,0 +1,10 @@
+fastapi>=0.115,<1.0
+uvicorn>=0.34,<1.0
+httpx>=0.28,<1.0
+ruamel.yaml>=0.18,<1.0
+# Flashing the device without installing 7.8 GB of ESP-IDF. Brings pyserial
+# along, which is also how the port list tells an ESP32 from a Bluetooth dongle.
+esptool>=5.0,<6.0
+# Announces the server on the LAN so the device finds it without anyone typing
+# an IP address.
+zeroconf>=0.132,<1.0

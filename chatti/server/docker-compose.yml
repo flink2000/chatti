@@ -1,0 +1,80 @@
+# chatti - the whole PC-side stack in one file.
+#
+# Why this file exists: both containers used to be created by hand. The running
+# xiaozhi-server ended up with more bind mounts than the README listed, so a
+# single `docker rm` would have silently dropped patches that cost hours to find.
+# This file is now the truth; the README only explains it.
+#
+#   docker compose up -d                     start everything
+#   docker compose restart xiaozhi-server    after editing .config.yaml
+#   docker compose down                      stop and remove (model cache survives)
+#   docker compose ps                        what is running
+#
+# Derived on 2026-08-16 from `docker inspect` of the containers that were actually
+# running - deliberately not from the README, because the two had already drifted.
+#
+# Not started here: LM Studio. It is a Windows application, not a container.
+
+name: chatti
+
+services:
+
+  # Speech recognition (faster-whisper) and speech synthesis (piper) out of one
+  # container. Speaks plain OpenAI protocol, which is why no Piper provider of
+  # our own was needed.
+  speaches:
+    image: ghcr.io/speaches-ai/speaches:latest-cpu
+    container_name: speaches       # Chatti Control looks the containers up by name
+    restart: unless-stopped
+    ports:
+      # Speaches wants 8000 as well - that one belongs to xiaozhi-server here.
+      - "8100:8000"
+    environment:
+      # Ryzen 5 2600: 6 cores, 12 threads. The 4 GB GPU is busy with the LLM,
+      # so recognition runs on the CPU and may use all of it.
+      WHISPER__CPU_THREADS: "12"
+    volumes:
+      - hf-hub-cache:/home/ubuntu/.cache/huggingface/hub
+
+  # The server the device actually talks to.
+  xiaozhi-server:
+    image: ghcr.io/xinnan-tech/xiaozhi-esp32-server:server_latest
+    container_name: xiaozhi-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"   # WebSocket - audio in, audio out
+      - "8003:8003"   # HTTP/OTA - hands the device its WebSocket address
+    environment:
+      # Read by our opus_encoder_utils.py. Upstream hardcodes 24000, and 24 kbit/s
+      # at a 24 kHz sample rate forces Opus to cut bandwidth - sibilants fall apart
+      # audibly. Bandwidth is irrelevant on a LAN.
+      CHATTI_OPUS_BITRATE: "48000"
+    extra_hosts:
+      # LM Studio runs on the host, not in a container. Docker Desktop provides
+      # this name by itself; plain Linux does not. Spelling it out keeps the file
+      # portable without changing anything here.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # Runtime state: .config.yaml, chatti-prompt.txt, conversations, recordings.
+      # Never in the repo. Point CHATTI_DATA in .env at an existing directory, or
+      # leave it unset and it lands in ./data next to this file.
+      - ${CHATTI_DATA:-./data}:/opt/xiaozhi-esp32-server/data
+
+      # --- our patches, read-only. README.md says what each one fixes. ---
+      # Order matches the table there.
+      - ./asr_openai.py:/opt/xiaozhi-esp32-server/core/providers/asr/openai.py:ro
+      - ./tts_openai.py:/opt/xiaozhi-esp32-server/core/providers/tts/openai.py:ro
+      - ./helloHandle.py:/opt/xiaozhi-esp32-server/core/handle/helloHandle.py:ro
+      - ./opus_encoder_utils.py:/opt/xiaozhi-esp32-server/core/utils/opus_encoder_utils.py:ro
+      - ./tts_base.py:/opt/xiaozhi-esp32-server/core/providers/tts/base.py:ro
+      - ./sendAudioHandle.py:/opt/xiaozhi-esp32-server/core/handle/sendAudioHandle.py:ro
+      - ./chatti_log.py:/opt/xiaozhi-esp32-server/core/utils/chatti_log.py:ro
+      - ./websocket_server.py:/opt/xiaozhi-esp32-server/core/websocket_server.py:ro
+      - ./http_server.py:/opt/xiaozhi-esp32-server/core/http_server.py:ro
+
+volumes:
+  hf-hub-cache:
+    # Already exists and holds several GB of downloaded Whisper and Piper models.
+    # Without `external` compose would create an empty chatti_hf-hub-cache beside
+    # it and every model would download again.
+    external: true
